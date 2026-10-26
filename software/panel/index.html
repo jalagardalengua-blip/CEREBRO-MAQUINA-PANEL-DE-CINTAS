@@ -1,0 +1,432 @@
+<title>Mando de línea</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* Layout: pantalla de máquina (HMI) en un solo aspecto oscuro. Cabecera con el selector de modo;
+   franja de modo/alarma; a la izquierda el esquema de carriles, contadores y registro;
+   a la derecha los mandos del modo activo y la parada. En móvil, todo en una columna. */
+:root{
+  --bg:#0D1214; --surface:#151C1F; --surface-2:#1C2529; --line:#2A363C;
+  --fg:#E6ECEE; --muted:#9AA9AF;
+  --auto:#3FBF83; --auto-ink:#05170E; --auto-soft:#11291E;
+  --manual:#F2A93B; --manual-ink:#201301; --manual-soft:#2B1F0C;
+  --alarm:#EF5B52; --alarm-ink:#FFFFFF; --alarm-soft:#2E1413;
+  --focus:#8CC4FF;
+  --f-ui:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-num:"IBM Plex Mono",ui-monospace,"Cascadia Mono",monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{min-height:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--f-ui);font-size:15px;line-height:1.45;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:14px 24px}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer}
+button:focus-visible,input:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.num{font-family:var(--f-num);font-variant-numeric:tabular-nums}
+
+header{display:flex;flex-wrap:wrap;align-items:center;gap:12px 18px;padding:12px 16px;background:var(--surface);border:1px solid var(--line);border-radius:12px}
+.marca{display:flex;flex-direction:column;margin-right:auto;min-width:0}
+.marca b{font-size:18px;letter-spacing:.02em}
+.marca span{font-size:13px;color:var(--muted)}
+.chip{display:inline-flex;align-items:center;gap:8px;height:30px;padding:0 12px;border-radius:15px;font-size:13px;font-weight:600;background:var(--surface-2);color:var(--muted);border:1px solid var(--line)}
+.chip i{width:9px;height:9px;border-radius:50%;background:currentColor}
+.chip.ok{color:var(--auto)} .chip.demo{color:var(--focus)} .chip.mal{color:var(--alarm)}
+.modo{display:flex;padding:4px;background:var(--bg);border:1px solid var(--line);border-radius:10px;gap:4px}
+.modo button{height:44px;min-width:128px;padding:0 16px;border:0;border-radius:7px;background:transparent;color:var(--muted);font-weight:700;letter-spacing:.04em;text-transform:uppercase;font-size:13px}
+.modo button[aria-pressed="true"].b-auto{background:var(--auto);color:var(--auto-ink)}
+.modo button[aria-pressed="true"].b-man{background:var(--manual);color:var(--manual-ink)}
+.estado{display:flex;align-items:center;gap:10px;height:44px;padding:0 16px;border-radius:8px;font-weight:700;letter-spacing:.06em;font-size:14px;text-transform:uppercase}
+.estado i{width:12px;height:12px;border-radius:50%;background:currentColor}
+.estado.marcha{background:var(--auto-soft);color:var(--auto)}
+.estado.parada{background:var(--surface-2);color:var(--muted)}
+.estado.alarma{background:var(--alarm-soft);color:var(--alarm)}
+
+.franja{margin-top:10px;display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;padding:12px 16px;border-radius:10px;font-weight:500}
+.franja.man{background:var(--manual-soft);border:1px solid var(--manual);color:var(--fg)}
+.franja.man b{color:var(--manual);text-transform:uppercase;letter-spacing:.06em}
+.franja.al{background:var(--alarm-soft);border:1px solid var(--alarm)}
+.franja.al b{color:var(--alarm);text-transform:uppercase;letter-spacing:.06em}
+.franja .txt{flex:1 1 280px;min-width:0}
+.btn-rearme{height:44px;padding:0 18px;border-radius:8px;border:0;background:var(--alarm);color:var(--alarm-ink);font-weight:700}
+
+.cuerpo{margin-top:12px;display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start}
+.izq{flex:999 1 560px;min-width:0;display:flex;flex-direction:column;gap:12px}
+.der{flex:1 1 340px;min-width:0;display:flex;flex-direction:column;gap:12px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.card h2{margin:0;font-size:12px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.card .cab{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+.card .cab span{font-size:13px;color:var(--muted)}
+
+/* esquema de carriles */
+.carriles{display:flex;flex-direction:column;gap:8px}
+.carril{display:grid;grid-template-columns:76px minmax(0,1fr) 108px;gap:12px;align-items:center}
+.carril .nom{font-size:13px;color:var(--muted);font-weight:600}
+.pista{position:relative;height:30px;border-radius:6px;background:var(--surface-2);overflow:hidden;border:1px solid var(--line)}
+.pista::before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent 0 22px,rgba(255,255,255,.06) 22px 24px)}
+.marcha-on .pista::before{animation:avance var(--dur,1s) linear infinite}
+@keyframes avance{to{transform:translateX(24px)}}
+@media (prefers-reduced-motion: reduce){.marcha-on .pista::before{animation:none}}
+.pista .cam{position:absolute;left:38%;top:0;bottom:0;width:2px;background:var(--auto);opacity:.7}
+.pista .cola{position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:12px;color:var(--muted)}
+.tramp{height:30px;border-radius:6px;border:1px solid var(--line);background:var(--surface-2);display:flex;align-items:center;justify-content:center;gap:6px;font-size:12px;font-weight:700;letter-spacing:.05em;color:var(--muted);text-transform:uppercase}
+.tramp.abierta{background:var(--manual);border-color:var(--manual);color:var(--manual-ink)}
+.leyenda{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12px;color:var(--muted)}
+.leyenda span{display:inline-flex;align-items:center;gap:6px}
+.leyenda i{display:inline-block;width:14px;height:3px;background:var(--auto)}
+.leyenda i.t{width:12px;height:12px;border-radius:3px;background:var(--manual)}
+
+.contadores{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+.contador{display:flex;flex-direction:column;gap:2px;min-width:0}
+.contador span{font-size:12px;color:var(--muted)}
+.contador b{font-family:var(--f-num);font-variant-numeric:tabular-nums;font-size:26px;font-weight:500;line-height:1.15}
+.contador.malo b{color:var(--alarm)} .contador.bien b{color:var(--auto)} .contador.aviso b{color:var(--manual)}
+@media (max-width:620px){.contadores{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+.eventos{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;max-height:260px;overflow:auto}
+.eventos li{display:grid;grid-template-columns:70px minmax(0,1fr);gap:10px;padding:7px 0;border-top:1px solid var(--line);font-size:13px}
+.eventos li:first-child{border-top:0}
+.eventos time{color:var(--muted);font-family:var(--f-num)}
+.eventos li.aviso span{color:var(--manual)} .eventos li.alarma span{color:var(--alarm);font-weight:600}
+.vacio{color:var(--muted);font-size:13px}
+
+/* mandos */
+.grande{height:64px;border-radius:10px;border:0;font-size:18px;font-weight:700;letter-spacing:.03em}
+.b-arrancar{background:var(--auto);color:var(--auto-ink)}
+.b-parar-auto{background:var(--surface-2);color:var(--fg);border:1px solid var(--line)}
+.grande:disabled{opacity:.45;cursor:not-allowed}
+.ctl{display:flex;flex-direction:column;gap:4px}
+.ctl .fila{display:flex;justify-content:space-between;gap:8px;font-size:14px}
+input[type=range]{width:100%;height:32px;margin:0;accent-color:var(--auto)}
+.manual-on input[type=range]{accent-color:var(--manual)}
+.nota{margin:0;font-size:13px;color:var(--muted)}
+.jog{height:84px;border-radius:12px;border:2px solid var(--manual);background:var(--manual-soft);color:var(--manual);font-size:17px;font-weight:700;touch-action:none;user-select:none;-webkit-user-select:none}
+.jog.pulsado{background:var(--manual);color:var(--manual-ink)}
+.puertas{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.puerta{border:1px solid var(--line);border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:8px;background:var(--surface-2)}
+.puerta .t{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:2px 8px;font-size:13px;font-weight:600}
+.puerta .t span{white-space:nowrap}
+.puerta .t em{font-style:normal;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.puerta .t em.on{color:var(--manual)}
+.puerta .bs{display:flex;gap:6px}
+.puerta button{flex:1;height:44px;border-radius:7px;border:1px solid var(--line);background:var(--surface);font-weight:600;font-size:14px}
+.puerta button.abrir[aria-pressed="true"]{background:var(--manual);color:var(--manual-ink);border-color:var(--manual)}
+.lectura{display:flex;justify-content:space-between;align-items:baseline;font-size:14px;color:var(--muted)}
+.lectura b{color:var(--fg);font-family:var(--f-num);font-size:18px;font-weight:500}
+.b-parar{height:60px;border-radius:10px;border:2px solid var(--alarm);background:var(--alarm-soft);color:var(--fg);font-size:17px;font-weight:700}
+
+/* diálogo del PIN */
+dialog{border:1px solid var(--line);border-radius:14px;background:var(--surface);color:var(--fg);padding:0;width:min(420px,calc(100vw - 32px))}
+dialog::backdrop{background:rgba(0,0,0,.6)}
+dialog form{padding:20px;display:flex;flex-direction:column;gap:14px}
+dialog h3{margin:0;font-size:18px}
+dialog p{margin:0;color:var(--muted);font-size:14px}
+dialog label{display:flex;flex-direction:column;gap:6px;font-size:14px;font-weight:500}
+dialog input{height:46px;border-radius:8px;border:1px solid var(--line);background:var(--bg);padding:0 12px;font-size:16px}
+dialog .err{color:var(--alarm);font-size:13px;min-height:1em}
+dialog .bs{display:flex;gap:10px;justify-content:flex-end}
+dialog .bs button{height:46px;padding:0 18px;border-radius:8px;border:1px solid var(--line);background:var(--surface-2);font-weight:600}
+dialog .bs button.si{background:var(--manual);color:var(--manual-ink);border-color:var(--manual)}
+.aviso-flot{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));max-width:calc(100vw - 32px);background:var(--alarm);color:var(--alarm-ink);padding:12px 18px;border-radius:10px;font-weight:600;font-size:14px;box-shadow:0 6px 24px rgba(0,0,0,.4)}
+</style>
+
+<header>
+  <div class="marca"><b>Triadora · Línea 1</b><span>4 carriles · trampillas neumáticas</span></div>
+  <span class="chip" id="conexion"><i></i><span>Conectando…</span></span>
+  <div class="modo" role="group" aria-label="Modo de funcionamiento">
+    <button type="button" class="b-auto" id="bAuto" aria-pressed="true">Automático</button>
+    <button type="button" class="b-man" id="bMan" aria-pressed="false">Manual</button>
+  </div>
+  <div class="estado parada" id="estado" role="status"><i></i><span>Parada</span></div>
+</header>
+
+<div class="franja al" id="franjaAlarma" hidden>
+  <b>Alarma</b><span class="txt" id="txtAlarma"></span>
+  <button type="button" class="btn-rearme" id="bRearmar">Rearmar</button>
+</div>
+<div class="franja man" id="franjaManual" hidden>
+  <b>Modo manual</b>
+  <span class="txt">Responsable: <strong id="responsable">—</strong>. El detector sigue mirando pero no puede mover las trampillas.</span>
+</div>
+
+<div class="cuerpo" id="cuerpo">
+  <div class="izq">
+    <section class="card" aria-labelledby="h-linea">
+      <div class="cab"><h2 id="h-linea">Línea</h2><span>Encoder <b class="num" id="cuenta">—</b> cuentas</span></div>
+      <div class="carriles" id="carriles"></div>
+      <div class="leyenda"><span><i></i>Línea de la cámara</span><span><i class="t"></i>Trampilla abierta</span></div>
+    </section>
+
+    <section class="card" aria-labelledby="h-cont">
+      <div class="cab"><h2 id="h-cont">Turno</h2><button type="button" class="chip" id="bCero">Poner a cero</button></div>
+      <div class="contadores">
+        <div class="contador"><span>Inspeccionadas</span><b id="cIns">0</b></div>
+        <div class="contador malo"><span>Malas</span><b id="cMal">0</b></div>
+        <div class="contador aviso"><span>Dudosas</span><b id="cDud">0</b></div>
+        <div class="contador bien"><span>Expulsadas</span><b id="cExp">0</b></div>
+        <div class="contador aviso"><span>Llegaron tarde</span><b id="cTar">0</b></div>
+      </div>
+    </section>
+
+    <section class="card" aria-labelledby="h-ev">
+      <h2 id="h-ev">Registro</h2>
+      <ul class="eventos" id="eventos"></ul>
+    </section>
+  </div>
+
+  <div class="der">
+    <section class="card" id="mandosAuto" aria-labelledby="h-auto">
+      <h2 id="h-auto">Producción</h2>
+      <button type="button" class="grande b-arrancar" id="bMarcha">Arrancar</button>
+      <div class="ctl">
+        <div class="fila"><label for="velA">Velocidad de la cinta</label><output class="num" id="velAO" for="velA">50 %</output></div>
+        <input type="range" id="velA" min="10" max="100" step="5" value="50">
+      </div>
+      <p class="nota">El detector decide qué trampilla se abre. Si deja de responder, la cinta se para sola en medio segundo.</p>
+    </section>
+
+    <section class="card manual-on" id="mandosManual" aria-labelledby="h-man" hidden>
+      <h2 id="h-man">Mantenimiento</h2>
+      <button type="button" class="jog" id="bJog">Mantén pulsado para mover la cinta</button>
+      <div class="ctl">
+        <div class="fila"><label for="velM">Velocidad de la cinta</label><output class="num" id="velMO" for="velM">50 %</output></div>
+        <input type="range" id="velM" min="5" max="100" step="5" value="50">
+      </div>
+      <div class="puertas" id="puertas"></div>
+      <p class="nota">Una trampilla abierta a mano se cierra sola a los 10 segundos. Al volver a automático todo se cierra y la cinta queda parada.</p>
+    </section>
+
+    <button type="button" class="b-parar" id="bParar">Parar cinta</button>
+    <p class="nota">Parada normal. La seta de emergencia de la máquina corta la energía por su cuenta.</p>
+  </div>
+</div>
+
+<dialog id="dlg">
+  <form id="fPin" novalidate>
+    <h3>Pasar a modo manual</h3>
+    <p>La cinta se parará y el detector dejará de mandar en las trampillas.</p>
+    <label for="nombre">Tu nombre<input id="nombre" autocomplete="name" maxlength="40" required></label>
+    <label for="pin">PIN de mantenimiento<input id="pin" type="password" inputmode="numeric" autocomplete="off" maxlength="12" required></label>
+    <p class="err" id="errPin" aria-live="polite"></p>
+    <p id="pistaDemo" hidden>PIN de la demostración: 1234</p>
+    <div class="bs"><button type="button" id="bCancelar">Cancelar</button><button type="submit" class="si">Entrar en manual</button></div>
+  </form>
+</dialog>
+<div class="aviso-flot" id="flot" role="alert" hidden></div>
+
+<script>
+(function(){
+var N = 4;
+
+/* ---------- Demostración: imita al servicio de línea cuando no hay servidor ---------- */
+var Demo = (function(){
+  var s = {modo:"automatico", responsable:null, en_marcha:false, velocidad:50, cuenta:0, trampillas:[0,0,0,0].map(function(){return false;}),
+    cola:[0,0,0,0], alarma:null, contadores:{inspeccionadas:0,malas:0,dudosas:0,expulsadas:0,tarde:0}, eventos:[]};
+  var manAbierta=[false,false,false,false], manDesde=[0,0,0,0], pulsoHasta=[0,0,0,0], abrirHasta=[0,0,0,0];
+  var programadas=[], jog=false, ultimoJog=0, ultimo=performance.now();
+  function hora(){return new Date().toLocaleTimeString("es-ES",{hour12:false});}
+  function reg(t,n){s.eventos.unshift({hora:hora(),texto:t,nivel:n||"info"});if(s.eventos.length>30)s.eventos.pop();}
+  reg("Servicio arrancado en modo automático (demostración)");
+  function tick(){
+    var ahora=performance.now(), dt=Math.min(0.25,(ahora-ultimo)/1000); ultimo=ahora;
+    if(jog && ahora-ultimoJog>400){jog=false;s.en_marcha=false;}
+    var mueve=s.en_marcha;
+    if(mueve){
+      var f=s.velocidad/50; s.cuenta+=Math.round(2000*f*dt);
+      if(s.modo==="automatico"){
+        var nuevas=Math.random()<dt*8*f?1+Math.floor(Math.random()*3):0;
+        for(var i=0;i<nuevas;i++){
+          s.contadores.inspeccionadas++;
+          var r=Math.random();
+          if(r<0.08||r>0.975){
+            if(r<0.08)s.contadores.malas++; else s.contadores.dudosas++;
+            var c=Math.floor(Math.random()*N); s.cola[c]++;
+            programadas.push({c:c,en:ahora+1500/f});
+          }
+        }
+      }
+    }
+    for(var k=programadas.length-1;k>=0;k--){var p=programadas[k];
+      if(mueve&&ahora>=p.en){abrirHasta[p.c]=ahora+140;s.cola[p.c]=Math.max(0,s.cola[p.c]-1);s.contadores.expulsadas++;programadas.splice(k,1);}
+      else if(!mueve)p.en+=dt*1000;}
+    for(var c2=0;c2<N;c2++){
+      var abierta=ahora<abrirHasta[c2]||ahora<pulsoHasta[c2]||(s.modo==="manual"&&manAbierta[c2]);
+      if(s.modo==="manual"&&manAbierta[c2]&&ahora-manDesde[c2]>10000){manAbierta[c2]=false;reg("Trampilla "+(c2+1)+" cerrada sola tras 10 s abierta","aviso");abierta=ahora<pulsoHasta[c2];}
+      s.trampillas[c2]=abierta;
+    }
+  }
+  setInterval(tick,50);
+  function rechazo(m){var e=new Error(m);throw e;}
+  return {
+    estado:function(){return JSON.parse(JSON.stringify(Object.assign({conectado:true,demo:true},s)));},
+    accion:function(n,d){
+      if(n==="modo"){
+        var man=d.modo==="manual"; if(man===(s.modo==="manual"))return;
+        if(man){ if(String(d.pin)!=="1234"){reg("Intento de pasar a manual con PIN incorrecto","aviso");rechazo("PIN incorrecto.");}
+          s.modo="manual";s.en_marcha=false;jog=false;programadas=[];s.cola=[0,0,0,0];s.responsable=(d.nombre||"sin nombre").slice(0,40);
+          reg("Modo MANUAL · responsable: "+s.responsable+". Cinta parada, detector sin mando.","aviso");}
+        else{ reg("Vuelta a AUTOMÁTICO (manual de "+s.responsable+"). Pulsa Arrancar."); s.modo="automatico";s.responsable=null;s.en_marcha=false;jog=false;manAbierta=[false,false,false,false];pulsoHasta=[0,0,0,0];}
+        return;}
+      if(n==="marcha"){ if(s.modo==="manual")rechazo("En manual la cinta se mueve con el botón de mantener pulsado.");
+        if(d.on&&s.alarma)rechazo("Hay una alarma activa. Revisa la causa y pulsa Rearmar.");
+        s.en_marcha=!!d.on; reg(s.en_marcha?"Cinta en marcha":"Cinta parada"); return;}
+      if(n==="parar"){jog=false;s.en_marcha=false;reg("Cinta parada desde el panel");return;}
+      if(n==="jog"){ if(s.modo!=="manual")rechazo("Esta acción solo está disponible en modo manual."); ultimoJog=performance.now(); if(!jog){jog=true;s.en_marcha=true;} return;}
+      if(n==="jog_fin"){ if(jog){jog=false;s.en_marcha=false;} return;}
+      if(n==="trampilla"){ if(s.modo!=="manual")rechazo("Esta acción solo está disponible en modo manual.");
+        manAbierta[d.carril]=!!d.abierta; if(d.abierta)manDesde[d.carril]=performance.now();
+        reg("Trampilla "+(d.carril+1)+(d.abierta?" abierta":" cerrada")+" a mano"); return;}
+      if(n==="probar"){ if(s.modo!=="manual")rechazo("Esta acción solo está disponible en modo manual."); pulsoHasta[d.carril]=performance.now()+300; reg("Prueba de trampilla "+(d.carril+1)); return;}
+      if(n==="velocidad"){s.velocidad=Math.max(0,Math.min(100,d.valor|0));return;}
+      if(n==="rearmar"){ if(s.alarma)reg("Alarma rearmada"); s.alarma=null; return;}
+      if(n==="contadores_a_cero"){Object.keys(s.contadores).forEach(function(k){s.contadores[k]=0;});reg("Contadores a cero");return;}
+      rechazo("Acción desconocida: "+n);
+    }
+  };
+})();
+
+/* ---------- Conexión con el servicio de línea (o la demostración) ---------- */
+var backend=null, fallos=0;
+function pedirEstado(){
+  if(backend==="demo")return Promise.resolve(Demo.estado());
+  return fetch("api/estado",{cache:"no-store"}).then(function(r){
+    var tipo=r.headers.get("content-type")||"";
+    if(!r.ok||tipo.indexOf("json")<0)throw new Error("sin servicio");
+    return r.json();
+  });
+}
+function accion(n,d){
+  if(backend==="demo"){try{Demo.accion(n,d||{});return Promise.resolve();}catch(e){return Promise.reject(e);}}
+  return fetch("api/"+n,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(d||{})})
+    .then(function(r){return r.json().catch(function(){return {ok:false,error:"Respuesta no válida del servicio"};});})
+    .then(function(j){if(!j.ok)throw new Error(j.error||"Orden rechazada");});
+}
+function mandar(n,d){return accion(n,d).then(refrescar,function(e){aviso(e.message);});}
+
+/* ---------- Interfaz ---------- */
+var $=function(id){return document.getElementById(id);};
+var carrilesEl=$("carriles"), puertasEl=$("puertas"), filas=[], puertas=[];
+for(var c=0;c<N;c++){
+  var f=document.createElement("div");f.className="carril";
+  f.innerHTML='<span class="nom">Carril '+(c+1)+'</span><div class="pista"><span class="cam"></span><span class="cola num"></span></div><div class="tramp">Cerrada</div>';
+  carrilesEl.appendChild(f);filas.push({cola:f.querySelector(".cola"),tramp:f.querySelector(".tramp")});
+  var p=document.createElement("div");p.className="puerta";
+  p.innerHTML='<div class="t"><span>Trampilla '+(c+1)+'</span><em>Cerrada</em></div><div class="bs"><button type="button" class="abrir" aria-pressed="false">Abrir</button><button type="button" class="pulso">Pulso</button></div>';
+  puertasEl.appendChild(p);
+  (function(c,p){
+    var b=p.querySelector(".abrir");
+    b.addEventListener("click",function(){mandar("trampilla",{carril:c,abierta:b.getAttribute("aria-pressed")!=="true"});});
+    p.querySelector(".pulso").addEventListener("click",function(){mandar("probar",{carril:c});});
+    puertas.push({b:b,em:p.querySelector("em")});
+  })(c,p);
+}
+
+var ultimo=null;
+function pintar(e){
+  ultimo=e;
+  var man=e.modo==="manual";
+  var ch=$("conexion");
+  ch.className="chip "+(e.demo&&backend==="demo"?"demo":"ok");
+  ch.lastElementChild.textContent=backend==="demo"?"Demostración":(e.demo?"Conectado · detector de prueba":"Conectado");
+  $("bAuto").setAttribute("aria-pressed",man?"false":"true");
+  $("bMan").setAttribute("aria-pressed",man?"true":"false");
+  var est=$("estado"), txt;
+  if(e.alarma){est.className="estado alarma";txt="Alarma";}
+  else if(e.en_marcha){est.className="estado marcha";txt=man?"Moviendo (manual)":"En marcha";}
+  else {est.className="estado parada";txt="Parada";}
+  est.lastElementChild.textContent=txt;
+  $("franjaAlarma").hidden=!e.alarma; $("txtAlarma").textContent=e.alarma||"";
+  $("franjaManual").hidden=!man; $("responsable").textContent=e.responsable||"—";
+  $("mandosAuto").hidden=man; $("mandosManual").hidden=!man;
+  var bm=$("bMarcha");
+  bm.textContent=e.en_marcha?"Parar producción":"Arrancar";
+  bm.className="grande "+(e.en_marcha?"b-parar-auto":"b-arrancar");
+  bm.disabled=!!e.alarma&&!e.en_marcha;
+  $("cuenta").textContent=e.cuenta==null?"—":Number(e.cuenta).toLocaleString("es-ES");
+  var cuerpo=$("cuerpo");
+  cuerpo.classList.toggle("marcha-on",!!e.en_marcha);
+  cuerpo.style.setProperty("--dur",(0.9*50/Math.max(5,e.velocidad||50)).toFixed(2)+"s");
+  for(var i=0;i<N;i++){
+    var ab=!!(e.trampillas&&e.trampillas[i]);
+    filas[i].tramp.className="tramp"+(ab?" abierta":"");
+    filas[i].tramp.textContent=ab?"Abierta":"Cerrada";
+    var q=e.cola?e.cola[i]:0;
+    filas[i].cola.textContent=man?"":(q?q+(q===1?" fruta mala en camino":" malas en camino"):"");
+    puertas[i].b.setAttribute("aria-pressed",ab?"true":"false");
+    puertas[i].b.textContent=ab?"Cerrar":"Abrir";
+    puertas[i].em.textContent=ab?"Abierta":"Cerrada";
+    puertas[i].em.className=ab?"on":"";
+  }
+  var k=e.contadores||{}, n=function(x){return Number(x||0).toLocaleString("es-ES");};
+  $("cIns").textContent=n(k.inspeccionadas);$("cMal").textContent=n(k.malas);$("cDud").textContent=n(k.dudosas);
+  $("cExp").textContent=n(k.expulsadas);$("cTar").textContent=n(k.tarde);
+  if(document.activeElement!==$("velA")&&document.activeElement!==$("velM")){
+    $("velA").value=e.velocidad;$("velM").value=e.velocidad;}
+  $("velAO").textContent=$("velA").value+" %";$("velMO").textContent=$("velM").value+" %";
+  var ul=$("eventos");ul.textContent="";
+  (e.eventos||[]).forEach(function(ev){var li=document.createElement("li");li.className=ev.nivel;
+    var t=document.createElement("time");t.textContent=ev.hora;var s=document.createElement("span");s.textContent=ev.texto;
+    li.appendChild(t);li.appendChild(s);ul.appendChild(li);});
+  if(!ul.children.length){var li=document.createElement("li");li.className="vacio";li.textContent="Sin eventos todavía.";ul.appendChild(li);}
+}
+function sinConexion(){
+  var ch=$("conexion");ch.className="chip mal";ch.lastElementChild.textContent="Sin conexión con el servicio";
+  var est=$("estado");est.className="estado alarma";est.lastElementChild.textContent="Sin datos";
+}
+function refrescar(){
+  return pedirEstado().then(function(e){fallos=0;pintar(e);},function(){fallos++;if(fallos>2)sinConexion();});
+}
+
+var tFlot=null;
+function aviso(m){var f=$("flot");f.textContent=m;f.hidden=false;clearTimeout(tFlot);tFlot=setTimeout(function(){f.hidden=true;},4000);}
+
+/* modo */
+var dlg=$("dlg");
+$("bMan").addEventListener("click",function(){
+  if(ultimo&&ultimo.modo==="manual")return;
+  $("errPin").textContent="";$("pin").value="";$("pistaDemo").hidden=backend!=="demo";
+  if(dlg.showModal)dlg.showModal();else dlg.setAttribute("open","");
+  $("nombre").focus();
+});
+$("bCancelar").addEventListener("click",function(){dlg.close();});
+$("fPin").addEventListener("submit",function(ev){
+  ev.preventDefault();
+  var nom=$("nombre").value.trim(), pin=$("pin").value.trim();
+  if(!nom){$("errPin").textContent="Escribe tu nombre: queda en el registro.";$("nombre").focus();return;}
+  if(!pin){$("errPin").textContent="Escribe el PIN de mantenimiento.";$("pin").focus();return;}
+  accion("modo",{modo:"manual",nombre:nom,pin:pin}).then(function(){dlg.close();refrescar();},function(e){$("errPin").textContent=e.message;$("pin").select();});
+});
+["nombre","pin"].forEach(function(id){$(id).addEventListener("input",function(){$("errPin").textContent="";});});
+$("bAuto").addEventListener("click",function(){if(ultimo&&ultimo.modo!=="manual")return;soltarJog();mandar("modo",{modo:"automatico"});});
+
+/* producción */
+$("bMarcha").addEventListener("click",function(){mandar("marcha",{on:!(ultimo&&ultimo.en_marcha)});});
+$("bParar").addEventListener("click",function(){soltarJog();mandar("parar");});
+$("bRearmar").addEventListener("click",function(){mandar("rearmar");});
+$("bCero").addEventListener("click",function(){mandar("contadores_a_cero");});
+["velA","velM"].forEach(function(id){
+  var el=$(id);
+  el.addEventListener("input",function(){$(id+"O").textContent=el.value+" %";});
+  el.addEventListener("change",function(){mandar("velocidad",{valor:+el.value});});
+});
+
+/* hombre muerto: mientras se mantiene pulsado, se renueva cada 150 ms */
+var bJog=$("bJog"), tJog=null;
+function pulsarJog(ev){if(ev)ev.preventDefault();if(tJog)return;bJog.classList.add("pulsado");
+  var envia=function(){accion("jog").catch(function(e){aviso(e.message);soltarJog();});};envia();tJog=setInterval(envia,150);}
+function soltarJog(){if(!tJog)return;clearInterval(tJog);tJog=null;bJog.classList.remove("pulsado");accion("jog_fin").catch(function(){});}
+bJog.addEventListener("pointerdown",function(ev){bJog.setPointerCapture&&bJog.setPointerCapture(ev.pointerId);pulsarJog(ev);});
+["pointerup","pointercancel","lostpointercapture"].forEach(function(t){bJog.addEventListener(t,soltarJog);});
+bJog.addEventListener("keydown",function(ev){if((ev.key===" "||ev.key==="Enter")&&!ev.repeat)pulsarJog(ev);});
+bJog.addEventListener("keyup",function(ev){if(ev.key===" "||ev.key==="Enter")soltarJog();});
+bJog.addEventListener("contextmenu",function(ev){ev.preventDefault();});
+window.addEventListener("blur",soltarJog);
+document.addEventListener("visibilitychange",function(){if(document.hidden)soltarJog();});
+
+/* arranque: ¿hay servicio de línea? si no, demostración */
+pedirEstado().then(function(e){backend="real";pintar(e);},function(){backend="demo";pintar(Demo.estado());})
+  .then(function(){setInterval(refrescar,250);});
+})();
+</script>

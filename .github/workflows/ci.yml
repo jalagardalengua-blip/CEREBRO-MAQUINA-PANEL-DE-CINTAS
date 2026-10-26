@@ -1,0 +1,36 @@
+name: Pruebas
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  software:
+    name: Software y simulador (Python ${{ matrix.python }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: ["3.10", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Instalar dependencias
+        run: pip install -r requirements.txt
+      - name: Tests (protocolo, servicio de línea, calibración y firmware con imitación de Arduino)
+        run: python -m unittest discover -s tests -v
+
+  firmware-esp32:
+    name: Compilar firmware para ESP32
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: arduino/compile-sketches@v1
+        with:
+          fqbn: esp32:esp32:esp32
+          platforms: |
+            - name: esp32:esp32
+              source-url: https://espressif.github.io/arduino-esp32/package_esp32_index.json
+          sketch-paths: |
+            - firmware/controlador_trampillas

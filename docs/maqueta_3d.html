@@ -1,0 +1,355 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+</head>
+<body>
+<title>Triadora por carriles</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: barra superior con nombre, maqueta 3D a la izquierda y panel de mandos/contadores a la derecha; en móvil se apilan */
+:root{
+  --bg:#F3F5F4; --surface:#FFFFFF; --line:#D5DCDA; --fg:#18201F; --muted:#56625F;
+  --accent:#D9730D; --accent-ink:#FFFFFF; --good:#1F8A5B; --bad:#C43D33; --warn:#B26A00;
+  --scene:#E6EBEA; --label-bg:rgba(255,255,255,.92);
+  --f-display:"IBM Plex Sans",system-ui,sans-serif; --f-body:"IBM Plex Sans",system-ui,sans-serif; --f-mono:"IBM Plex Mono",ui-monospace,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0E1413; --surface:#161E1D; --line:#2A3634; --fg:#E7EEEC; --muted:#9DAAA7;
+  --accent:#F08A2A; --accent-ink:#1A0E02; --good:#4CC38A; --bad:#F0605A; --warn:#F5A524;
+  --scene:#121A19; --label-bg:rgba(22,30,29,.92); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0E1413; --surface:#161E1D; --line:#2A3634; --fg:#E7EEEC; --muted:#9DAAA7;
+  --accent:#F08A2A; --accent-ink:#1A0E02; --good:#4CC38A; --bad:#F0605A; --warn:#F5A524;
+  --scene:#121A19; --label-bg:rgba(22,30,29,.92); color-scheme:dark}
+html,body{height:100%}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.5;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:16px;box-sizing:border-box}
+header{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 16px;margin-bottom:12px}
+h1{font-family:var(--f-display);font-size:22px;font-weight:600;margin:0;text-wrap:balance}
+header p{margin:0;color:var(--muted);font-size:14px;max-width:70ch}
+.wrap{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start}
+.stage{flex:999 1 560px;min-width:0;position:relative;height:min(72vh,680px);min-height:380px;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--scene)}
+.stage canvas{display:block;width:100%;height:100%;touch-action:none}
+.labels{position:absolute;inset:0;pointer-events:none}
+.lbl{position:absolute;transform:translate(-50%,-100%);background:var(--label-bg);border:1px solid var(--line);color:var(--fg);font-size:12px;padding:2px 7px;border-radius:4px;white-space:nowrap;font-weight:500}
+.views{position:absolute;left:10px;top:10px;display:flex;gap:6px;flex-wrap:wrap}
+.views button,.btn{font:inherit;font-size:13px;font-weight:500;background:var(--surface);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:0 12px;height:36px;cursor:pointer}
+.views button[aria-pressed="true"]{border-color:var(--accent);color:var(--accent)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+aside{flex:1 1 300px;min-width:0;max-width:100%;display:flex;flex-direction:column;gap:12px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:12px}
+.card h2{margin:0;font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.run{height:48px;font-size:15px;font-weight:600;background:var(--accent);color:var(--accent-ink);border:0;border-radius:8px;cursor:pointer;font-family:inherit}
+.ctl{display:flex;flex-direction:column;gap:2px}
+.ctl .row{display:flex;justify-content:space-between;font-size:14px;gap:8px}
+.ctl output{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.ctl small{color:var(--muted);font-size:12px}
+input[type=range]{width:100%;accent-color:var(--accent);height:28px;margin:0}
+.stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.stat{display:flex;flex-direction:column}
+.stat span{font-size:12px;color:var(--muted)}
+.stat b{font-family:var(--f-mono);font-variant-numeric:tabular-nums;font-size:22px;font-weight:500}
+.stat.good b{color:var(--good)} .stat.bad b{color:var(--bad)} .stat.warn b{color:var(--warn)}
+.note{font-size:13px;color:var(--muted);margin:0}
+.toggle{display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer}
+.toggle input{width:18px;height:18px;accent-color:var(--accent)}
+.err{display:none;position:absolute;inset:0;align-items:center;justify-content:center;text-align:center;padding:20px;color:var(--muted)}
+</style>
+
+<header>
+  <h1>Triadora por carriles</h1>
+  <p>Maqueta de la línea: cinta lenta con guías, cinta rápida en 4 carriles, campana con cámara y trampillas que dejan caer la fruta mala. Arrastra para girar, rueda o pellizca para acercar.</p>
+</header>
+
+<div class="wrap">
+  <div class="stage" id="stage">
+    <div class="labels" id="labels"></div>
+    <div class="views" role="group" aria-label="Vista de la cámara">
+      <button type="button" data-view="persp" aria-pressed="true">Perspectiva</button>
+      <button type="button" data-view="side" aria-pressed="false">Lateral</button>
+      <button type="button" data-view="top" aria-pressed="false">Planta</button>
+      <button type="button" data-view="doors" aria-pressed="false">Trampillas</button>
+    </div>
+    <div class="err" id="err">No se ha podido cargar el motor 3D. Recarga la página.</div>
+  </div>
+
+  <aside>
+    <div class="card">
+      <h2>Mandos</h2>
+      <button type="button" class="run" id="run">Pausar</button>
+      <div class="ctl">
+        <div class="row"><label for="flow">Fruta que entra</label><output id="flowO"></output></div>
+        <input id="flow" type="range" min="2" max="14" step="1" value="7">
+      </div>
+      <div class="ctl">
+        <div class="row"><label for="v1">Velocidad cinta lenta</label><output id="v1O"></output></div>
+        <input id="v1" type="range" min="0.3" max="1.2" step="0.05" value="0.6">
+      </div>
+      <div class="ctl">
+        <div class="row"><label for="ratio">Cinta rápida / lenta</label><output id="ratioO"></output></div>
+        <input id="ratio" type="range" min="1" max="3" step="0.1" value="2.2">
+        <small>Cuanto más rápida la segunda cinta, más hueco entre frutas.</small>
+      </div>
+      <div class="ctl">
+        <div class="row"><label for="badp">Fruta con defecto</label><output id="badpO"></output></div>
+        <input id="badp" type="range" min="0" max="30" step="1" value="8">
+      </div>
+      <label class="toggle"><input type="checkbox" id="showLbl" checked> Mostrar nombres de las piezas</label>
+    </div>
+
+    <div class="card">
+      <h2>Resultado</h2>
+      <div class="stats">
+        <div class="stat"><span>Inspeccionadas</span><b id="sIns">0</b></div>
+        <div class="stat good"><span>Buenas a caja</span><b id="sGood">0</b></div>
+        <div class="stat bad"><span>Malas expulsadas</span><b id="sOut">0</b></div>
+        <div class="stat warn"><span>Buenas perdidas</span><b id="sLost">0</b></div>
+      </div>
+      <p class="note" id="sNote">Una buena se pierde si va pegada detrás de una mala y cae por la trampilla abierta. Baja la relación de velocidades para verlo.</p>
+      <button type="button" class="btn" id="reset">Poner contadores a cero</button>
+    </div>
+  </aside>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+(function(){
+if(!window.THREE){document.getElementById('err').style.display='flex';return;}
+var stage=document.getElementById('stage'), labelsEl=document.getElementById('labels');
+var renderer=new THREE.WebGLRenderer({antialias:true});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+renderer.shadowMap.enabled=true;
+stage.insertBefore(renderer.domElement,labelsEl);
+var scene=new THREE.Scene();
+var cam=new THREE.PerspectiveCamera(40,1,0.1,200);
+var controls=THREE.OrbitControls?new THREE.OrbitControls(cam,renderer.domElement):null;
+if(controls){controls.enableDamping=true;controls.maxPolarAngle=Math.PI*0.49;}
+
+function cssVar(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim();}
+function applyTheme(){var c=cssVar('--scene')||'#E6EBEA';scene.background=new THREE.Color(c);}
+applyTheme();
+try{matchMedia('(prefers-color-scheme: dark)').addEventListener('change',applyTheme);}catch(e){}
+new MutationObserver(applyTheme).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+
+scene.add(new THREE.HemisphereLight(0xffffff,0x667070,0.75));
+var sun=new THREE.DirectionalLight(0xffffff,0.75);sun.position.set(4,10,6);sun.castShadow=true;
+sun.shadow.mapSize.set(1024,1024);var sc=sun.shadow.camera;sc.left=-10;sc.right=10;sc.top=8;sc.bottom=-8;scene.add(sun);
+
+var steel=new THREE.MeshStandardMaterial({color:0xb9c2c4,metalness:0.6,roughness:0.35});
+var steelDark=new THREE.MeshStandardMaterial({color:0x7d878a,metalness:0.6,roughness:0.4});
+var beltMat=new THREE.MeshStandardMaterial({color:0x2a3133,roughness:0.9});
+var slatMat=new THREE.MeshStandardMaterial({color:0x3a4346,roughness:0.9});
+var guideMat=new THREE.MeshStandardMaterial({color:0xe8ecec,roughness:0.5});
+var padMat=new THREE.MeshStandardMaterial({color:0x2f6f8f,roughness:0.8});
+function box(w,h,d,m,x,y,z,shadow){var o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);o.position.set(x,y,z);if(shadow!==false){o.castShadow=true;o.receiveShadow=true;}scene.add(o);return o;}
+
+var W=2.6, R=0.18;
+var X0=-7, XA=-2, XB=4, XC=6.6;
+var LANES=[-0.9,-0.3,0.3,0.9];
+var DOOR0=4.9, DOOR1=5.5;
+
+// cintas
+box(XA-X0,0.12,W,beltMat,(X0+XA)/2,-0.06,0);
+box(XB-XA,0.12,W,beltMat,(XA+XB)/2,-0.06,0);
+box(XA-X0,0.18,0.06,steel,(X0+XA)/2,-0.1,W/2+0.03); box(XA-X0,0.18,0.06,steel,(X0+XA)/2,-0.1,-W/2-0.03);
+box(XB-XA,0.18,0.06,steel,(XA+XB)/2,-0.1,W/2+0.03); box(XB-XA,0.18,0.06,steel,(XA+XB)/2,-0.1,-W/2-0.03);
+[X0,XA,XB].forEach(function(x){var c=new THREE.Mesh(new THREE.CylinderGeometry(0.09,0.09,W,16),steelDark);c.rotation.x=Math.PI/2;c.position.set(x,-0.07,0);scene.add(c);});
+// patas
+[[-6.6,1],[-2.4,1],[-1.6,1],[3.6,1],[6.3,1]].forEach(function(p){
+  box(0.08,1.9,0.08,steelDark,p[0],-1.1,W/2+0.08); box(0.08,1.9,0.08,steelDark,p[0],-1.1,-W/2-0.08);});
+// listones que se mueven (para ver la velocidad de cada cinta)
+var slats=[];
+function addSlats(x0,x1,n,which){for(var i=0;i<n;i++){var s=new THREE.Mesh(new THREE.BoxGeometry(0.04,0.01,W-0.04),slatMat);s.position.set(x0+(x1-x0)*i/n,0.003,0);s.receiveShadow=true;scene.add(s);slats.push({m:s,x0:x0,x1:x1,which:which});}}
+addSlats(X0,XA,14,1); addSlats(XA,XB,18,2);
+
+// guías: paredes exteriores y separadores de carril con punta en la cinta lenta
+var GH=0.24;
+box(XC-X0,GH,0.04,guideMat,(X0+XC)/2,GH/2,W/2-0.02);
+box(XC-X0,GH,0.04,guideMat,(X0+XC)/2,GH/2,-W/2+0.02);
+var TIP=-3.4;
+[-0.6,0,0.6].forEach(function(z){
+  box(XC-TIP,GH,0.035,guideMat,(TIP+XC)/2,GH/2,z);
+  var cone=new THREE.Mesh(new THREE.ConeGeometry(0.06,0.5,4),guideMat);cone.rotation.z=Math.PI/2;cone.position.set(TIP-0.25,GH/2,z);scene.add(cone);});
+// embudo en V a la entrada
+[1,-1].forEach(function(s){var g=new THREE.Mesh(new THREE.BoxGeometry(1.6,GH,0.04),guideMat);g.position.set(-6.0,GH/2,s*(W/2-0.18));g.rotation.y=s*0.22;scene.add(g);});
+
+// canal de salida con trampillas
+var doors=[];
+LANES.forEach(function(z,i){
+  box(DOOR0-XB,0.06,0.56,steel,(XB+DOOR0)/2,-0.03,z);
+  box(XC-DOOR1,0.06,0.56,steel,(DOOR1+XC)/2,-0.03,z);
+  var pivot=new THREE.Group();pivot.position.set(DOOR0,0,z);scene.add(pivot);
+  var d=new THREE.Mesh(new THREE.BoxGeometry(DOOR1-DOOR0,0.05,0.54),new THREE.MeshStandardMaterial({color:0xd9a441,metalness:0.4,roughness:0.4}));
+  d.position.set((DOOR1-DOOR0)/2,-0.025,0);d.castShadow=true;pivot.add(d);
+  var cyl=new THREE.Mesh(new THREE.CylinderGeometry(0.035,0.035,0.5,10),steelDark);cyl.position.set(DOOR0+0.25,-0.45,z);cyl.rotation.z=0.5;scene.add(cyl);
+  doors.push({pivot:pivot,angle:0,target:0});
+});
+box(XC-XB,0.18,0.06,steel,(XB+XC)/2,-0.1,W/2+0.03); box(XC-XB,0.18,0.06,steel,(XB+XC)/2,-0.1,-W/2-0.03);
+// caja de destrío bajo las trampillas
+var binMat=new THREE.MeshStandardMaterial({color:0x9e3a32,roughness:0.7});
+box(1.6,0.05,W,binMat,5.2,-1.75,0); box(1.6,0.9,0.05,binMat,5.2,-1.3,W/2); box(1.6,0.9,0.05,binMat,5.2,-1.3,-W/2);
+box(0.05,0.9,W,binMat,4.4,-1.3,0); box(0.05,0.9,W,binMat,6.0,-1.3,0);
+// rampa acolchada
+var ramp=new THREE.Mesh(new THREE.BoxGeometry(1.0,0.04,W-0.1),padMat);ramp.position.set(5.2,-0.55,0);ramp.rotation.z=0.12;scene.add(ramp);
+// caja de fruta buena
+var boxMat=new THREE.MeshStandardMaterial({color:0x2e7d57,roughness:0.7});
+box(1.3,0.05,W,boxMat,7.4,-1.0,0); box(1.3,0.6,0.05,boxMat,7.4,-0.72,W/2); box(1.3,0.6,0.05,boxMat,7.4,-0.72,-W/2);
+box(0.05,0.6,W,boxMat,6.75,-0.72,0); box(0.05,0.6,W,boxMat,8.05,-0.72,0);
+var floor=new THREE.Mesh(new THREE.PlaneGeometry(40,20),new THREE.ShadowMaterial({opacity:0.18}));floor.rotation.x=-Math.PI/2;floor.position.y=-2.05;floor.receiveShadow=true;scene.add(floor);
+
+// campana con cámara
+var HX0=-0.3,HX1=1.5,HH=1.35;
+var hood=new THREE.Mesh(new THREE.BoxGeometry(HX1-HX0,HH,W+0.2),new THREE.MeshStandardMaterial({color:0x8fb3c0,transparent:true,opacity:0.18,depthWrite:false,side:THREE.DoubleSide}));
+hood.position.set((HX0+HX1)/2,HH/2,0);scene.add(hood);
+var edges=new THREE.LineSegments(new THREE.EdgesGeometry(hood.geometry),new THREE.LineBasicMaterial({color:0x5f7f8a}));edges.position.copy(hood.position);scene.add(edges);
+box(0.5,0.3,0.5,new THREE.MeshStandardMaterial({color:0x1b2224,roughness:0.5}),0.6,HH+0.15,0);
+var lens=new THREE.Mesh(new THREE.CylinderGeometry(0.1,0.12,0.18,20),new THREE.MeshStandardMaterial({color:0x0a0d0e,metalness:0.8,roughness:0.2}));lens.position.set(0.6,HH-0.08,0);scene.add(lens);
+[-1.2,1.2].forEach(function(z){box(HX1-HX0-0.2,0.04,0.1,new THREE.MeshStandardMaterial({color:0xffffff,emissive:0xfff3d6,emissiveIntensity:0.8}),0.6,HH-0.05,z,false);});
+var scanMat=new THREE.MeshBasicMaterial({color:0x4cc38a,transparent:true,opacity:0.55});
+var scan=new THREE.Mesh(new THREE.PlaneGeometry(0.04,W-0.1),scanMat);scan.rotation.x=-Math.PI/2;scan.position.set(0.6,0.006,0);scene.add(scan);
+var scanFlash=0, scanBad=false;
+// cable al panel
+var pts=[new THREE.Vector3(0.6,HH+0.3,0),new THREE.Vector3(0.6,HH+0.9,-1.4),new THREE.Vector3(0.6,1.6,-2.4),new THREE.Vector3(0.6,0.9,-2.6)];
+var cable=new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),30,0.025,6,false),new THREE.MeshStandardMaterial({color:0x222222}));scene.add(cable);
+// panel HMI
+var panelPost=box(0.08,1.8,0.08,steelDark,0.6,-1.05,-2.6);
+var screen=box(0.9,0.6,0.06,new THREE.MeshStandardMaterial({color:0x151d23,emissive:0x0e2a22,emissiveIntensity:0.6}),0.6,0.7,-2.6);
+screen.rotation.y=0; screen.rotation.x=-0.25;
+
+// fruta
+var fruitGeo=new THREE.SphereGeometry(R,22,16);
+var spotGeo=new THREE.SphereGeometry(R*0.5,12,10);
+var ringGeo=new THREE.TorusGeometry(R*1.35,0.018,6,28);
+var ringMat=new THREE.MeshBasicMaterial({color:0xf0605a});
+var spotMat=new THREE.MeshStandardMaterial({color:0x5b6b3a,roughness:1});
+var bruiseMat=new THREE.MeshStandardMaterial({color:0x7a4a17,roughness:1});
+function orangeMat(){var h=0.075+Math.random()*0.02;return new THREE.MeshStandardMaterial({color:new THREE.Color().setHSL(h,0.85,0.5),roughness:0.75});}
+var fruits=[];
+var P={flow:7,v1:0.6,ratio:2.2,bad:0.08};
+var stats={ins:0,good:0,out:0,lost:0,esc:0};
+
+function spawn(){
+  var z=(Math.random()*2-1)*1.05, x=X0+0.25;
+  for(var i=0;i<fruits.length;i++){var f=fruits[i];if(f.state==='belt'&&Math.abs(f.x-x)<2.2*R&&Math.abs(f.z-z)<2.2*R)return;}
+  var g=new THREE.Group();
+  var body=new THREE.Mesh(fruitGeo,orangeMat());body.castShadow=true;g.add(body);
+  var isBad=Math.random()<P.bad;
+  if(isBad){var s=new THREE.Mesh(spotGeo,Math.random()<0.5?spotMat:bruiseMat);var a=Math.random()*Math.PI*2;s.position.set(Math.cos(a)*R*0.62,R*0.62,Math.sin(a)*R*0.62);s.scale.set(1,0.55,1);body.add(s);}
+  var lane=0,best=9;LANES.forEach(function(lz,i){var d=Math.abs(lz-z);if(d<best){best=d;lane=i;}});
+  g.position.set(x,R,z);scene.add(g);
+  fruits.push({g:g,body:body,x:x,y:R,z:z,vy:0,vx:0,lane:lane,bad:isBad,flag:false,seen:false,state:'belt',t:0});
+}
+function removeFruit(i){scene.remove(fruits[i].g);fruits.splice(i,1);}
+
+function speedAt(x){return x<XA?P.v1:P.v1*P.ratio;}
+
+var running=!matchMedia('(prefers-reduced-motion: reduce)').matches;
+var spawnAcc=0;
+function step(dt){
+  spawnAcc+=dt*P.flow;
+  while(spawnAcc>=1){spawnAcc-=1;spawn();}
+  slats.forEach(function(s){var v=s.which===1?P.v1:P.v1*P.ratio;s.m.position.x+=v*dt;if(s.m.position.x>s.x1)s.m.position.x-=(s.x1-s.x0);});
+  // orden por x para evitar que se monten
+  var onBelt=fruits.filter(function(f){return f.state==='belt';}).sort(function(a,b){return b.x-a.x;});
+  for(var i=0;i<onBelt.length;i++){
+    var f=onBelt[i], nx=f.x+speedAt(f.x)*dt;
+    if(f.x>-5.2){var tz=LANES[f.lane];f.z+=(tz-f.z)*Math.min(1,dt*(f.x>TIP-0.6?8:2.2));}
+    for(var j=0;j<i;j++){var a=onBelt[j];var dz=Math.abs(a.z-f.z);if(dz<2*R){var lim=a.x-Math.sqrt(4*R*R-dz*dz);if(nx>lim)nx=Math.max(f.x,lim);}}
+    var dx=nx-f.x;f.x=nx;f.body.rotation.z-=dx/R;
+    if(!f.seen&&f.x>=0.6){f.seen=true;stats.ins++;scanFlash=0.18;scanBad=false;
+      if(f.bad&&Math.random()<0.97){f.flag=true;scanBad=true;var r=new THREE.Mesh(ringGeo,ringMat);r.rotation.x=Math.PI/2;r.position.y=-R*0.55;f.g.add(r);}}
+    var door=doors[f.lane];
+    if(f.x>DOOR0+0.05&&f.x<DOOR1-0.05&&door.angle>0.45){f.state='fall';f.vy=0;f.vx=speedAt(f.x)*0.6;
+      if(f.flag)stats.out++;else stats.lost++;}
+    else if(f.x>XC+R*0.3){f.state='drop';f.vy=0;f.vx=speedAt(f.x)*0.8;if(f.bad)stats.esc++;else stats.good++;}
+  }
+  // trampillas: se abren cuando una fruta marcada llega encima
+  doors.forEach(function(d,li){
+    var open=false;
+    for(var k=0;k<fruits.length;k++){var f=fruits[k];if(f.state==='belt'&&f.flag&&f.lane===li&&f.x>DOOR0-0.12&&f.x<DOOR1){open=true;break;}}
+    d.target=open?1.15:0;
+    var rate=1.15/0.09;
+    if(d.angle<d.target)d.angle=Math.min(d.target,d.angle+rate*dt);else d.angle=Math.max(d.target,d.angle-rate*dt);
+    d.pivot.rotation.z=-d.angle;
+  });
+  // caídas
+  for(var m=fruits.length-1;m>=0;m--){
+    var f=fruits[m];
+    if(f.state==='fall'||f.state==='drop'){
+      f.vy-=9.8*dt*0.55;f.y+=f.vy*dt;f.x+=f.vx*dt;f.vx*=0.98;f.body.rotation.z-=f.vx*dt/R;
+      var floorY=f.state==='fall'?-1.72+R:-0.97+R;
+      var xmin=f.state==='fall'?4.5:6.85, xmax=f.state==='fall'?5.9:7.95;
+      if(f.state==='fall'&&f.y<-0.5&&f.y>-0.62&&f.x>4.7&&f.x<5.7){f.vy*=0.3;f.vx=0.4;}
+      if(f.x>xmax)f.x=xmax;
+      if(f.y<=floorY+Math.random()*0.15){f.y=floorY;f.state=f.state==='fall'?'bin':'box';f.t=0;if(f.x<xmin)f.x=xmin;}
+    } else if(f.state==='bin'||f.state==='box'){f.t+=dt;if(f.t>7){removeFruit(m);continue;}}
+    f.g.position.set(f.x,f.y,f.z);
+  }
+  if(scanFlash>0){scanFlash-=dt;scanMat.color.set(scanBad?0xf0605a:0x4cc38a);scanMat.opacity=0.95;}else{scanMat.color.set(0x4cc38a);scanMat.opacity=0.45;}
+}
+
+// etiquetas
+var LBL=[
+  ['Embudo en V',-6.0,0.5,0],['Cinta lenta',-4.6,0.05,1.45],['Separadores de carril',TIP,0.45,0],['Cinta rápida (abre huecos)',-1.0,0.05,1.45],
+  ['Campana con cámara y luz',0.6,1.85,0],['Panel de triaje',0.6,1.15,-2.6],['Trampillas',5.2,0.35,1.45],['Destrío',5.2,-1.75,1.5],['Caja fruta buena',7.4,-0.35,1.5]
+];
+var lblEls=LBL.map(function(l){var e=document.createElement('div');e.className='lbl';e.textContent=l[0];labelsEl.appendChild(e);return {e:e,v:new THREE.Vector3(l[1],l[2],l[3])};});
+var showLbl=document.getElementById('showLbl');
+function drawLabels(w,h){
+  labelsEl.hidden=!showLbl.checked;if(!showLbl.checked)return;
+  lblEls.forEach(function(o){var p=o.v.clone().project(cam);var vis=p.z<1&&p.x>-1.05&&p.x<1.05&&p.y>-1.05&&p.y<1.05;o.e.hidden=!vis;
+    if(vis){o.e.style.left=((p.x+1)/2*w)+'px';o.e.style.top=((1-p.y)/2*h)+'px';}});
+}
+
+// vistas
+var VIEWS={persp:[[7.5,6.5,10],[0.6,-0.4,0]],side:[[0.8,0.6,13.5],[0.6,-0.4,0]],top:[[0.6,15,0.01],[0.6,0,0]],doors:[[7.2,2.6,4.2],[5.1,-0.6,0]]};
+function setView(k){var v=VIEWS[k];cam.position.set(v[0][0],v[0][1],v[0][2]);if(controls){controls.target.set(v[1][0],v[1][1],v[1][2]);controls.update();}else cam.lookAt(v[1][0],v[1][1],v[1][2]);
+  document.querySelectorAll('.views button').forEach(function(b){b.setAttribute('aria-pressed',b.dataset.view===k?'true':'false');});}
+document.querySelectorAll('.views button').forEach(function(b){b.addEventListener('click',function(){setView(b.dataset.view);});});
+setView('persp');
+
+// mandos
+function bind(id,key,fmt,scale){var el=document.getElementById(id),o=document.getElementById(id+'O');
+  function upd(){var v=parseFloat(el.value);P[key]=scale?v*scale:v;o.textContent=fmt(v);}el.addEventListener('input',upd);upd();}
+bind('flow','flow',function(v){return v+' frutas/s';});
+bind('v1','v1',function(v){return v.toFixed(2).replace('.',',')+' m/s';});
+bind('ratio','ratio',function(v){return '× '+v.toFixed(1).replace('.',',');});
+bind('badp','bad',function(v){return v+' %';},0.01);
+var runBtn=document.getElementById('run');
+function syncRun(){runBtn.textContent=running?'Pausar':'Arrancar';}
+runBtn.addEventListener('click',function(){running=!running;syncRun();});syncRun();
+document.getElementById('reset').addEventListener('click',function(){stats={ins:0,good:0,out:0,lost:0,esc:0};});
+var sEls={ins:document.getElementById('sIns'),good:document.getElementById('sGood'),out:document.getElementById('sOut'),lost:document.getElementById('sLost')};
+var note=document.getElementById('sNote');
+function drawStats(){var n=function(x){return x.toLocaleString('es-ES');};
+  sEls.ins.textContent=n(stats.ins);sEls.good.textContent=n(stats.good);sEls.out.textContent=n(stats.out);sEls.lost.textContent=n(stats.lost);
+  var tot=stats.good+stats.lost;
+  if(tot>20){var pct=(stats.lost/tot*100);note.textContent='Pérdida de fruta buena: '+pct.toFixed(1).replace('.',',')+' %. Malas que llegaron a caja sin detectar: '+n(stats.esc)+'.'+(pct>2?' Sube la relación de velocidades para abrir más hueco.':'');}
+}
+
+function resize(){var w=stage.clientWidth,h=stage.clientHeight;renderer.setSize(w,h,false);cam.aspect=w/h;cam.updateProjectionMatrix();}
+try{new ResizeObserver(resize).observe(stage);}catch(e){window.addEventListener('resize',resize);}
+resize();
+
+// arranque: algo de fruta ya en la línea
+for(var i=0;i<260;i++){step(1/30);} stats={ins:0,good:0,out:0,lost:0,esc:0};
+
+var last=performance.now(),statT=0;
+function loop(t){var dt=Math.min(0.05,(t-last)/1000);last=t;
+  if(running)step(dt);
+  if(controls)controls.update();
+  renderer.render(scene,cam);
+  drawLabels(stage.clientWidth,stage.clientHeight);
+  statT+=dt;if(statT>0.25){statT=0;drawStats();}
+  requestAnimationFrame(loop);}
+requestAnimationFrame(loop);
+})();
+</script>
+
+</body>
+</html>

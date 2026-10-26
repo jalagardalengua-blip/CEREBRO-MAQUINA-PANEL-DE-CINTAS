@@ -1,0 +1,16 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+venv/
+.env
+*.log
+# imágenes y modelos de entrenamiento: suelen pesar mucho, mejor fuera de Git (Git LFS o almacenamiento aparte)
+datos/
+modelos/*.pt
+modelos/*.onnx
+# compilaciones del firmware
+firmware/**/build/
+.vscode/
+.idea/
+.DS_Store
