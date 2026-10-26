@@ -334,7 +334,14 @@ def main():
     ap.add_argument("--red", action="store_true", help="aceptar conexiones de otros equipos (tableta)")
     args = ap.parse_args()
 
-    ctl = Controlador(args.destino)
+    try:
+        ctl = Controlador(args.destino)
+    except Exception as e:  # puerto inexistente, ocupado por otro programa, placa sin firmware...
+        print(f"\nNo se puede conectar con la placa en {args.destino}: {e}\n"
+              "Comprueba que el cable USB está conectado, que el puerto es el correcto "
+              "(en Windows: buscar_puerto_windows.bat) y que ningún otro programa lo tiene abierto, "
+              "por ejemplo el monitor serie del IDE de Arduino.")
+        raise SystemExit(1)
     linea = Linea(ctl, args.demo, args.pin)
     host = "0.0.0.0" if args.red else "127.0.0.1"
     srv = crear_servidor(linea, host, args.puerto)

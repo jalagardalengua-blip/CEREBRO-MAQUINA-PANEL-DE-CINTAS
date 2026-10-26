@@ -17,7 +17,17 @@ Máquina que sustituye el triaje manual de fruta: una cámara con IA inspecciona
 
 **Estado:** prototipo. El software se prueba automáticamente contra un simulador de la placa. El firmware compila, pero falta probarlo en una ESP32 real y calibrarlo con fruta.
 
-## Empezar en 1 minuto (sin hardware)
+## En Windows
+
+Instala Python 3.10+ (marcando "Add python.exe to PATH") y haz doble clic en:
+
+1. `instalar_windows.bat`: una vez.
+2. `probar_demo_windows.bat`: el panel sin máquina, con PIN `1234`.
+3. `arrancar_linea_windows.bat`: con la placa real (edita antes el puerto COM y el PIN).
+
+Guía completa, incluida la instalación de Claude Code: [docs/windows.md](docs/windows.md).
+
+## Empezar en 1 minuto (sin hardware, cualquier sistema)
 
 Necesitas Python 3.10 o superior.
 
@@ -62,6 +72,8 @@ Todo lo demás ya está resuelto: pasar de píxeles a carril y posición en la c
 | `software/ejemplo_detector.py` | Ejemplo mínimo sin panel |
 | `firmware/controlador_trampillas/` | Programa de la placa ESP32 |
 | `tests/` | Pruebas automáticas |
+| `*_windows.bat` | Instalar, probar y arrancar en Windows con doble clic |
+| `docs/windows.md` | Guía de Windows: instalación, placa, tableta, arranque automático y Claude Code |
 | `docs/protocolo.md` | Cómo se hablan PC y placa, y por qué |
 | `docs/montaje_y_calibracion.md` | Cableado, calibración y paso a PLC |
 | `docs/producto.md` | Plan para convertirlo en producto |

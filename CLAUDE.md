@@ -43,6 +43,8 @@ cd software && python simulador.py           # placa simulada en tcp://127.0.0.1
 cd software && python linea.py --demo        # servicio + panel en http://localhost:8080 (PIN 1234)
 ```
 
+En Windows, el usuario trabaja con los `.bat` de la raíz (`instalar_windows.bat`, `probar_demo_windows.bat`, `arrancar_linea_windows.bat` y `buscar_puerto_windows.bat`) y con `docs/windows.md`. Si cambias los argumentos de `linea.py` o de `simulador.py`, actualiza también esos archivos. Escribe sus mensajes sin tildes, para evitar problemas con la página de códigos de la consola.
+
 Ejecuta las pruebas después de cada cambio. `tests/test_firmware.py` compila el `.ino` con g++ y la imitación de `tests/stub_arduino/Arduino.h`. Si usas una función nueva de Arduino en el firmware, añádela también a esa imitación. La CI de GitHub (`.github/workflows/ci.yml`) además compila para `esp32:esp32:esp32`.
 
 ## Estilo

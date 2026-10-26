@@ -6,11 +6,16 @@ on:
 
 jobs:
   software:
-    name: Software y simulador (Python ${{ matrix.python }})
-    runs-on: ubuntu-latest
+    name: Software y simulador (${{ matrix.os }}, Python ${{ matrix.python }})
+    runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
+        os: [ubuntu-latest]
         python: ["3.10", "3.12"]
+        include:
+          - os: windows-latest
+            python: "3.12"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
