@@ -17,6 +17,7 @@ El código, los comentarios, los mensajes y la documentación están en **españ
 - `software/panel/index.html`: panel en un solo archivo (HTML, CSS y JS sin dependencias). Si no encuentra el servicio, entra en modo demostración con un backend simulado en JS (`Demo`).
 - `firmware/controlador_trampillas/controlador_trampillas.ino`: firmware de la ESP32 (Arduino).
 - `config_linea.py`: calibración y PIN.
+- `docs/triadora/`: app web independiente (GitHub Pages) que clasifica naranjas con la cámara en directo del navegador. `index.html` lleva todo: motor de visión, modelo aprendido (árboles en JSON), seguimiento, panel, capturas y exportación ZIP propia. `sw.js` y `manifest.webmanifest` la hacen instalable y usable sin conexión; si cambias los archivos que guarda, sube la versión de `CACHE` en `sw.js`. No usa el servicio de línea ni la placa.
 
 ## Invariantes: no romper
 

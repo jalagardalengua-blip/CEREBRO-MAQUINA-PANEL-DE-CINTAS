@@ -17,6 +17,19 @@ Máquina que sustituye el triaje manual de fruta: una cámara con IA inspecciona
 
 **Estado:** prototipo. El software se prueba automáticamente contra un simulador de la placa. El firmware compila, pero falta probarlo en una ESP32 real y calibrarlo con fruta.
 
+## Triadora con cámara en directo (sin instalar nada)
+
+**<https://jalagardalengua-blip.github.io/cerebro-maquina-panel-de-cintas/triadora/>**
+
+App web que usa la cámara del móvil o del ordenador para clasificar cada naranja en tiempo real: **buenas** (a caja), **a revisar** y **malas** (a destrío), con una foto de cada mala, contadores del turno, calibre en milímetros y exportación a ZIP o CSV. Se puede instalar en el móvil («Añadir a pantalla de inicio») y funciona sin internet una vez abierta.
+
+- Código: [`docs/triadora/index.html`](docs/triadora/index.html), un solo archivo sin dependencias.
+- Visión: separa cada fruta del fondo, mide 17 rasgos de su piel en relación con su propio color y decide con dos modelos de árboles aprendidos con unas 4.500 fotos reales de naranjas (sanas y podridas) y 1.500 de otras frutas. En fotos que no vio al aprender: el 88–90 % de las buenas salen buenas y solo el 0,3–1,2 % van a destrío; se detectan el 80–90 % de las malas, y se ignora el 97–99 % de las otras frutas.
+- Para que funcione bien: fondo liso gris, negro o blanco, buena luz y cámara fija a 40–60 cm.
+- Es la base para `software/mi_detector.py`: las fotos que se corrijan y exporten desde la app sirven para entrenar el detector con vuestra fruta.
+
+La portada [`docs/index.html`](docs/index.html) enlaza la triadora y la maqueta 3D. Se publica con GitHub Pages desde la carpeta `docs/` de la rama `main` (Settings → Pages).
+
 ## En Windows
 
 Instala Python 3.10+ (marcando "Add python.exe to PATH") y haz doble clic en:
@@ -78,6 +91,8 @@ Todo lo demás ya está resuelto: pasar de píxeles a carril y posición en la c
 | `docs/montaje_y_calibracion.md` | Cableado, calibración y paso a PLC |
 | `docs/producto.md` | Plan para convertirlo en producto |
 | `docs/maqueta_3d.html` | Maqueta 3D interactiva de la máquina (ábrela en el navegador) |
+| `docs/triadora/` | Triadora con cámara en directo (app web, se publica en GitHub Pages) |
+| `docs/index.html` | Portada de GitHub Pages |
 
 ## Pruebas
 
